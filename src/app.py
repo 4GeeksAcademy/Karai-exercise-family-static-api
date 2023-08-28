@@ -26,17 +26,71 @@ def sitemap():
     return generate_sitemap(app)
 
 @app.route('/members', methods=['GET'])
-def handle_hello():
+def get_all_members():
 
-    # this is how you can use the Family datastructure by calling its methods
     members = jackson_family.get_all_members()
-    response_body = {
-        "hello": "world",
-        "family": members
+    response_members = []
+
+    for member in members:
+        member_dict = {
+            'first_name': member.get('first_name'),
+            'last_name': member.get('last_name'),
+            'age': member.get('age'),
+            'lucky_numbers': member.get('lucky_numbers')
+        }
+        response_members.append(member_dict)
+
+    return jsonify(response_members), 200
+
+@app.route('/member/<int:id>', methods=['GET'])
+def get_member(id):
+
+    member = jackson_family.get_member(id)
+
+    if member is None:
+        return jsonify({'message': f'No member with id: {id}'}), 404
+
+    member_response = {
+        'first_name': member.get('first_name'),
+        'id': member.get('id'),
+        'age': member.get('age'),
+        'lucky_numbers': member.get('lucky_numbers')
     }
 
+    return jsonify(member_response), 200
 
-    return jsonify(response_body), 200
+@app.route('/member', methods=['POST'])
+def add_mebmber():
+
+    data = request.json
+    first_name = data.get('first_name')
+    age = data.get('age')
+    lucky_numbers = data.get('lucky_numbers', [])
+    id = data.get('id')
+
+    if not first_name or not age or not lucky_numbers:
+        return jsonify({'message': 'Bad request. Missing required data.'}), 400
+
+    member = {
+        'first_name': first_name,
+        'age': age,
+        'lucky_numbers': lucky_numbers,
+        'id': id
+    }
+   
+    added_member = jackson_family.add_member(member)
+
+    return jsonify(added_member), 200
+
+@app.route('/member/<int:id>', methods=['DELETE'])
+def delete_member(id):
+
+    deleted_response = jackson_family.delete_member(id)
+
+    # if not deleted_response:
+    #     return jsonify({'message': f'No member with id: {id}'}), 404
+
+    return jsonify({'done': deleted_response}), 200
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
